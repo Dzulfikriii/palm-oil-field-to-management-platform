@@ -1,6 +1,6 @@
 # Palm-Oil Field → Management Platform
 
-> A multi-tenant estate-management platform that replaces a legacy PHP/OpenCart admin panel with a modern **Next.js + Go + MSSQL** stack — covering harvesting, grading, attendance, work orders, inspections, weighbridge, weather, and 17 operational reports across multiple palm-oil estates.
+> A multi-tenant estate-management platform built on a modern **Next.js + Go + MSSQL** stack — covering harvesting, grading, attendance, work orders, inspections, weighbridge, weather, and 17 operational reports across multiple palm-oil estates.
 
 ---
 
@@ -18,9 +18,7 @@
 
 ## 1. Business Problem Solved
 
-Palm-oil estates run on tightly coupled daily workflows — **harvesting, grading, gang attendance, field inspections, work-order payroll, weighbridge intake, and weather logging** — that all roll up to a manager dashboard and a stack of statutory reports.
-
-The original system ("Estate-Admin") was a **fork of OpenCart 4.x** in PHP/Twig, repurposed so that the e-commerce surface is inert and the real value lives in custom modules (`field/`, `master/`, `collection/`, `upkeep/`, `work_order/`, `mill/`, `attendance/`, `audit/`, `asset/`, plus `extension/irga/` dashboards and reports). It was difficult to maintain, hard to extend, and tied to legacy frontend libraries (jQuery, Bootstrap 5, Flot, dropzone, gmaps, etc.).
+Palm-oil estates run on tightly coupled daily workflows — **harvesting, grading, gang attendance, field inspections, work-order payroll, weighbridge intake, and weather logging** — that all roll up to a manager dashboard and a stack of statutory reports. Coordinating these workflows across multiple estates, each with its own database, employees, gangs, blocks, and reporting cadence, is the core operational challenge.
 
 **What this platform delivers:**
 
@@ -32,7 +30,7 @@ The original system ("Estate-Admin") was a **fork of OpenCart 4.x** in PHP/Twig,
 - **Map view** — Leaflet-based aggregator with grouped GPS pins (one marker per `(lat, lng)`) and detail drill-down per pin.
 - **Mobile companion sync target** — the Go API exposes a `/api/v1/mobile/*` namespace for the field-side mobile app (gang leaders log harvesting from tablets).
 
-The result: the same business workflows the legacy panel served, on a stack that's faster to develop against, easier to deploy, and friendly to both desktop operators and tablet-based field users.
+The result: a unified back-office for estate operations that's fast to develop against, easy to deploy, and friendly to both desktop operators and tablet-based field users.
 
 ---
 
@@ -64,15 +62,12 @@ The result: the same business workflows the legacy panel served, on a stack that
 | Storage | Local file store for uploads (random 16-byte URLs) |
 
 ### Database
-- **Microsoft SQL Server** (unchanged from the legacy system to preserve operational continuity).
-- Three schemas inside `FIELD_PLUS_V1`:
+- **Microsoft SQL Server**, one database per estate (`FIELD_PLUS_V1`).
+- Three schemas:
   - `dbo.*` — operational data (harvesting, inspections, gradings, attendance, audit, weighbridge, weather, …)
   - `General.*` — masters (Estate, Division, BlockMaster, block_task, block_task_platform, block_task_row)
   - `Checkroll.*` — labor (CREmployee, GangMaster, GangEmployeeSetup)
 - Per-estate database connection registry on the Go side (in-memory `estatereg.Registry`).
-
-### Legacy reference — `Estate-Admin/`
-Kept in-tree as the spec source: PHP / OpenCart 4.x / Twig / jQuery / Bootstrap 5, ~200 controllers, ~120 models, ~440 Twig templates, plus the 522-file `extension/irga/` dashboards & reports module.
 
 ---
 
@@ -127,9 +122,9 @@ Kept in-tree as the spec source: PHP / OpenCart 4.x / Twig / jQuery / Bootstrap 
               │     Estate A db   │   Estate B db   │   Estate N db …      │
               └────────────────────────────────────────────────────────────┘
 
-  (sync target)                                      (legacy reference)
-  Mobile field app   ───── /api/v1/mobile ──┐        Estate-Admin (PHP/OpenCart)
-  (gang leaders)                            │        kept in-tree as PRD source
+  (sync target)
+  Mobile field app   ───── /api/v1/mobile ──┐
+  (gang leaders)                            │
                                             ▼
                                   iplant-go-api
 ```
@@ -153,13 +148,11 @@ Kept in-tree as the spec source: PHP / OpenCart 4.x / Twig / jQuery / Bootstrap 
 
 ## 4. Repository Structure
 
-The working monorepo lives at `~/Documents/GitHub/IRGA/WORKING-DASHBOARD/` and contains:
+Two services in a monorepo:
 
 ```
-WORKING-DASHBOARD/
-├── PRD.md                     # ~830-line product spec (mapping legacy → new)
-├── .prd-notes/                # controller / view / model inventories
-├── iplants-next/              # ✅ NEW frontend (Next.js 13 App Router)
+.
+├── iplants-next/              # Frontend (Next.js 13 App Router)
 │   ├── app/
 │   │   ├── login/
 │   │   ├── dashboard/
@@ -184,28 +177,23 @@ WORKING-DASHBOARD/
 │   ├── contexts/   hooks/   lib/   types/
 │   └── middleware.ts          # route protection
 │
-├── iplant-go-api/             # ✅ NEW backend (Go 1.26)
-│   ├── cmd/
-│   │   ├── api/               # HTTP + gRPC entrypoint
-│   │   └── schema/            # schema inspection tool
-│   ├── api/attendance/        # gRPC proto contracts
-│   ├── internal/
-│   │   ├── auth/              # JWT + bcrypt
-│   │   ├── config/            # env loading
-│   │   ├── db/  dbutil/       # MSSQL pool + helpers
-│   │   ├── estatereg/         # per-estate DB registry
-│   │   ├── httpapi/           # HTTP router, middleware, v1 handlers
-│   │   ├── grpcapi/  grpcserver/   # gRPC services (attendance)
-│   │   ├── dashboard/  reports/    # aggregate queries
-│   │   ├── attendance/  workorder/ inspection/  weighbridge/
-│   │   ├── weather/    history/   mapdata/    irgauser/
-│   │   ├── master/     settings/  uploads/
-│   └── migrations/            # master/lookup table SQL
-│
-└── Estate-Admin/              # 📜 LEGACY reference (PHP/OpenCart 4.x)
-    ├── spanel/version 3/      # controller / model / view (Twig) / language
-    ├── extension/version 3/   # irga/, opencart/, dev/, modification/{lpg,tps}/
-    └── project/v3/            # bootstrap, per-estate configs, database.config
+└── iplant-go-api/             # Backend (Go 1.26)
+    ├── cmd/
+    │   ├── api/               # HTTP + gRPC entrypoint
+    │   └── schema/            # schema inspection tool
+    ├── api/attendance/        # gRPC proto contracts
+    ├── internal/
+    │   ├── auth/              # JWT + bcrypt
+    │   ├── config/            # env loading
+    │   ├── db/  dbutil/       # MSSQL pool + helpers
+    │   ├── estatereg/         # per-estate DB registry
+    │   ├── httpapi/           # HTTP router, middleware, v1 handlers
+    │   ├── grpcapi/  grpcserver/   # gRPC services (attendance)
+    │   ├── dashboard/  reports/    # aggregate queries
+    │   ├── attendance/  workorder/ inspection/  weighbridge/
+    │   ├── weather/    history/   mapdata/    irgauser/
+    │   ├── master/     settings/  uploads/
+    └── migrations/            # master/lookup table SQL
 ```
 
 ### Key surface-area counts
@@ -214,7 +202,6 @@ WORKING-DASHBOARD/
 - **Master-data CRUD modules:** 25+
 - **Reports:** 17 print-friendly endpoints
 - **Frontend pages:** 30+ (App Router segments)
-- **Legacy PHP controllers replicated against:** ~200
 
 ---
 
@@ -327,11 +314,11 @@ PORT=8080            GRPC_PORT=9090
 ```
 
 **Targets:**
-- Bare metal / VM behind nginx (the existing infra for the legacy panel).
+- Bare metal / VM behind nginx.
 - Docker container (`FROM golang:1.26 AS build … FROM gcr.io/distroless/static`).
 - Systemd unit on the on-prem estate server.
 
-**Database:** Microsoft SQL Server already in production for each estate — no migration required. The Go API connects via `microsoft/go-mssqldb` and registers one connection pool per estate in `estatereg.Registry` at boot.
+**Database:** one Microsoft SQL Server database per estate. The Go API connects via `microsoft/go-mssqldb` and registers one connection pool per estate in `estatereg.Registry` at boot.
 
 **Uploads:** local `FileStore` writes to a configurable directory served at a public URL prefix with random 16-byte filenames (effectively unlisted). Swap for S3 by re-implementing the `FileStore` interface.
 
@@ -370,8 +357,7 @@ PORT=8080            GRPC_PORT=9090
 
 ## 7. Notes & Status
 
-- The **legacy `Estate-Admin/` tree is kept in-repo** as the canonical PRD source — every controller / model / view that the rebuild must cover is referenced in `PRD.md` (~830 lines) and the `.prd-notes/` files.
-- The **frontend currently boots with mock data fallback** for some flows so screens are demoable without a live MSSQL connection; production builds point `NEXT_PUBLIC_API_BASE` at the Go API.
+- The **frontend boots with mock data fallback** for some flows so screens are demoable without a live MSSQL connection; production builds point `NEXT_PUBLIC_API_BASE` at the Go API.
 - **Light & dark themes** are wired through `next-themes` with class-based Tailwind dark mode; toggle lives in the header.
 - The Go API includes a small **gRPC surface** for the attendance domain (used by the mobile companion) alongside the broader HTTP/JSON surface used by the dashboard.
 - **Security posture:** JWT-bearer auth, bcrypt password hashing, CORS via wrapper, per-estate DB scoping enforced at middleware level, upload URLs are random 16-byte ids served unauthenticated (toggleable to scoped).
