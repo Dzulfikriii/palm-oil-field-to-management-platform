@@ -207,9 +207,7 @@ Two services in a monorepo:
 
 ## 5. Screenshots
 
-> Drop screenshots into `./screenshots/` as `1.jpeg`, `2.jpeg`, … — the references below resolve automatically.
-
-### Login & Estate Selection
+<!-- ### Login & Estate Selection
 ![Login](./screenshots/1.jpeg)
 ![Estate selection](./screenshots/2.jpeg)
 
@@ -270,7 +268,7 @@ Estates, divisions, blocks, block tasks (+ rows / platforms), employees, gangs, 
 ### System / Users
 ![User management](./screenshots/27.jpeg)
 
----
+--- -->
 
 ## 6. Deployment Approach
 
